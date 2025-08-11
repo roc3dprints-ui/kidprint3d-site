@@ -1,9 +1,9 @@
-// src/App.tsx
 import React from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ShoppingCart, X, Star, ChevronLeft, ChevronRight, ShieldCheck,
-  ChevronDown, PackageCheck, Truck, Sparkles, Search, Filter, Info, Mail, HelpCircle
+  ChevronDown, PackageCheck, Truck, Sparkles, Search, Filter, Mail,
+  HelpCircle, GraduationCap, ClipboardCheck, ExternalLink
 } from "lucide-react";
 
 /* ------------ helpers ------------ */
@@ -21,16 +21,16 @@ function useAffiliates() {
   }, []);
   return links;
 }
+function buildAmazonSearch(q: string, tag?: string) {
+  const urlQ = encodeURIComponent(q);
+  return `https://www.amazon.com/s?k=${urlQ}${tag ? `&tag=${encodeURIComponent(tag)}` : ""}`;
+}
 function buildAffiliateUrl(pName: string, direct?: string, amazonTag?: string) {
-  if (direct && direct.trim()) return direct; // exact product link provided
-  // fallback: Amazon search URL (works even without tag)
-  const q = encodeURIComponent(`${pName} 3D Printer`);
-  let url = `https://www.amazon.com/s?k=${q}`;
-  if (amazonTag && amazonTag.trim()) url += `&tag=${encodeURIComponent(amazonTag.trim())}`;
-  return url;
+  if (direct && direct.trim()) return direct;
+  return buildAmazonSearch(`${pName} 3D Printer`, amazonTag);
 }
 
-/* ------------ data ------------ */
+/* ------------ catalog ------------ */
 type Product = {
   id: string; name: string; price: number; compareAt?: number; desc: string;
   badges: string[]; specs: string[]; art: string; category: "Printers" | "Kits";
@@ -48,122 +48,144 @@ const PRODUCTS: Product[] = [
     category: "Kits", rating: 4.6, reviews: 98, stock: "In stock" },
 ];
 
-/* ------------ SEO (adds JSON-LD automatically) ------------ */
-function useSEO(tab: "home" | "shop" | "stls" | "learn") {
+/* ------------ bundles (money + schools) ------------ */
+type Bundle = {
+  id: string;
+  name: string;
+  subtitle: string;
+  includes: { ref?: Product["id"]; custom?: string; search?: string }[]; // ref = product by id, custom = free item, search = Amazon search query
+  estPrice: number;
+  bestFor: string;
+};
+const BUNDLES: Bundle[] = [
+  {
+    id: "bundle-home",
+    name: "Home Starter Bundle",
+    subtitle: "Perfect first setup for families",
+    includes: [
+      { ref: "printer-tina2s" },
+      { search: "PLA 1.75mm 2 pack kid friendly" },
+      { custom: "Safety Cards (printable)" }
+    ],
+    estPrice: 259 + 30,
+    bestFor: "Ages 8+ with supervision"
+  },
+  {
+    id: "bundle-classroom",
+    name: "Classroom Essentials",
+    subtitle: "One enclosed printer + classroom supplies",
+    includes: [
+      { ref: "enclosed-kid-printer" },
+      { search: "PLA 1.75mm 4 pack classroom" },
+      { search: "Nozzle cleaning kit 0.4mm" },
+      { custom: "Safety Cards (printable)" }
+    ],
+    estPrice: 399 + 55,
+    bestFor: "1–2 small groups; curriculum pilots"
+  },
+  {
+    id: "bundle-lab",
+    name: "STEM Lab Pack",
+    subtitle: "Two printers + consumables + quickstart",
+    includes: [
+      { ref: "enclosed-kid-printer" },
+      { ref: "printer-tina2s" },
+      { search: "PLA 1.75mm assorted colors 6 pack" },
+      { search: "Spare 0.4mm brass nozzle 5 pack" },
+      { custom: "Safety Cards (printable)" }
+    ],
+    estPrice: 399 + 259 + 90,
+    bestFor: "Makerspaces & after-school"
+  }
+];
+
+/* ------------ SEO ------------ */
+function useSEO(tab: "home" | "shop" | "bundles" | "stls" | "learn") {
   React.useEffect(() => {
     const title = {
       home: "KidPrint — Kid-friendly 3D printing",
       shop: "Shop printers & kits — KidPrint",
+      bundles: "School bundles — KidPrint",
       stls: "Verified kid-friendly STL library — KidPrint",
       learn: "Parents & Teachers guide — KidPrint",
     }[tab];
     document.title = title;
 
     const descText =
-      "Enclosed, quiet 3D printers plus a curated, kid-safe STL library and free guides for parents and teachers.";
+      "Enclosed, quiet 3D printers plus curated kid-safe STL models and free guides for parents and teachers. School bundles available.";
     let desc = document.querySelector('meta[name="description"]');
-    if (!desc) {
-      desc = document.createElement("meta");
-      desc.setAttribute("name", "description");
-      document.head.appendChild(desc);
-    }
+    if (!desc) { desc = document.createElement("meta"); desc.setAttribute("name", "description"); document.head.appendChild(desc); }
     desc.setAttribute("content", descText);
 
-    // JSON-LD: Organization + one featured Product
-    const ldOrg = {
-      "@context": "https://schema.org",
-      "@type": "Organization",
-      name: "KidPrint",
-      url: "https://kidprint3d.com",
-      logo: "https://kidprint3d.com/favicon.svg"
+    // JSON-LD: Org + ItemList of bundles (names only for now)
+    const ldOrg = { "@context":"https://schema.org","@type":"Organization","name":"KidPrint","url":"https://kidprint3d.com","logo":"https://kidprint3d.com/favicon.svg" };
+    const ldList = {
+      "@context":"https://schema.org","@type":"ItemList",
+      "itemListElement": BUNDLES.map((b, idx) => ({
+        "@type":"ListItem","position":idx+1,"name":b.name
+      }))
     };
-    const featured = PRODUCTS[0];
-    const ldProduct = {
-      "@context": "https://schema.org",
-      "@type": "Product",
-      name: featured.name,
-      brand: featured.name.split(" ")[0],
-      category: "3D Printer",
-      offers: {
-        "@type": "Offer",
-        priceCurrency: "USD",
-        price: featured.price.toFixed(2),
-        availability: "https://schema.org/InStock",
-        url: "https://kidprint3d.com/"
-      },
-      aggregateRating: {
-        "@type": "AggregateRating",
-        ratingValue: featured.rating.toFixed(1),
-        reviewCount: String(featured.reviews)
-      }
-    };
-    // remove previous
     document.querySelectorAll("script[data-ld]").forEach(n => n.remove());
-    const s1 = document.createElement("script");
-    s1.type = "application/ld+json"; s1.dataset.ld = "org"; s1.text = JSON.stringify(ldOrg);
-    const s2 = document.createElement("script");
-    s2.type = "application/ld+json"; s2.dataset.ld = "product"; s2.text = JSON.stringify(ldProduct);
+    const s1 = document.createElement("script"); s1.type="application/ld+json"; s1.dataset.ld="org"; s1.text = JSON.stringify(ldOrg);
+    const s2 = document.createElement("script"); s2.type="application/ld+json"; s2.dataset.ld="bundles"; s2.text = JSON.stringify(ldList);
     document.head.appendChild(s1); document.head.appendChild(s2);
   }, [tab]);
 }
 
-/* ------------ UI parts ------------ */
+/* ------------ hero & shared UI ------------ */
 const SLIDES = [
   { id: "printers", h1: "Enclosed printers built for families.", p: "Quiet, auto-level, and ready in 10 minutes." },
   { id: "stls", h1: "Verified kid-friendly STL library.", p: "Curated by humans. Classroom-safe. Free to start." },
 ];
 
-function HeroSlider({ goTab }: { goTab: (t: "shop" | "stls") => void }) {
+function HeroSlider({ goTab }: { goTab: (t: "shop" | "stls" | "bundles") => void }) {
   const [i, setI] = React.useState(0);
   const [paused, setPaused] = React.useState(false);
-  React.useEffect(() => {
-    if (paused) return;
-    const t = setTimeout(() => setI((n) => (n + 1) % SLIDES.length), 6000);
-    return () => clearTimeout(t);
-  }, [i, paused]);
+  React.useEffect(() => { if (paused) return; const t = setTimeout(() => setI(n => (n+1)%SLIDES.length), 6000); return () => clearTimeout(t); }, [i, paused]);
 
   return (
-    <section className="relative isolate overflow-hidden">
-      <div className="mx-auto max-w-7xl px-6 py-12 md:py-20">
+    <section className="relative isolate">
+      <div className="mx-auto max-w-7xl px-6 pt-2">
+        {/* promo ribbon */}
+        <div className="mb-3 flex items-center justify-center gap-2 rounded-xl border border-emerald-400/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">
+          <GraduationCap className="h-4 w-4" />
+          <span><strong>Teachers:</strong> new Classroom bundle is live.</span>
+          <button onClick={() => goTab("bundles")} className="underline underline-offset-2">See bundles</button>
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-7xl px-6 pb-12 md:pb-20">
         <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
           <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] text-white/90">
             <ShieldCheck className="h-4 w-4" /> Verified kid-friendly
           </span>
 
           <AnimatePresence mode="wait">
-            <motion.div
-              key={SLIDES[i].id}
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 30 }}
-              transition={{ duration: 0.45, ease: "easeOut" }}
-              className="min-h-[140px]"
-            >
+            <motion.div key={SLIDES[i].id} initial={{opacity:0,x:-30}} animate={{opacity:1,x:0}} exit={{opacity:0,x:30}} transition={{duration:0.45,ease:"easeOut"}} className="min-h-[140px]">
               <h1 className="mb-3 text-4xl font-black leading-tight text-white md:text-5xl">{SLIDES[i].h1}</h1>
               <p className="mb-6 text-white/80">{SLIDES[i].p}</p>
               <div className="flex flex-wrap gap-3">
                 <button onClick={() => goTab("shop")} className="rounded-xl bg-emerald-500 px-4 py-2 font-semibold text-black hover:bg-emerald-400">Shop Printers</button>
                 <button onClick={() => goTab("stls")} className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 font-semibold hover:bg-white/10">Explore STLs</button>
+                <button onClick={() => goTab("bundles")} className="rounded-xl border border-emerald-400/40 bg-emerald-500/10 px-4 py-2 font-semibold text-emerald-200 hover:bg-emerald-500/20">School Bundles</button>
               </div>
             </motion.div>
           </AnimatePresence>
 
           <div className="mt-6 flex items-center justify-between">
+            <div className="flex items-center gap-2">{SLIDES.map((s,k)=>(
+              <button key={s.id} onClick={()=>setI(k)} className={cx("h-1.5 w-8 rounded-full transition-all", k===i?"bg-white":"bg-white/30 hover:bg-white/50")} />
+            ))}</div>
             <div className="flex items-center gap-2">
-              {SLIDES.map((s, k) => (
-                <button key={s.id} onClick={() => setI(k)} className={cx("h-1.5 w-8 rounded-full transition-all", k === i ? "bg-white" : "bg-white/30 hover:bg-white/50")} />
-              ))}
-            </div>
-            <div className="flex items-center gap-2">
-              <button className="rounded-lg border border-white/10 bg-white/5 p-2 text-white/90 hover:bg-white/10" onClick={() => setI((n) => (n + SLIDES.length - 1) % SLIDES.length)} aria-label="Prev"><ChevronLeft className="h-5 w-5" /></button>
-              <button className="rounded-lg border border-white/10 bg-white/5 p-2 text-white/90 hover:bg-white/10" onClick={() => setI((n) => (n + 1) % SLIDES.length)} aria-label="Next"><ChevronRight className="h-5 w-5" /></button>
-              <button className={cx("rounded-lg border border-white/10 p-2", paused ? "bg-white/20" : "bg-white/5 hover:bg-white/10")} onClick={() => setPaused((p) => !p)} aria-label={paused ? "Play" : "Pause"}>{paused ? "▶" : "❚❚"}</button>
+              <button className="rounded-lg border border-white/10 bg-white/5 p-2 text-white/90 hover:bg-white/10" onClick={()=>setI(n=>(n+SLIDES.length-1)%SLIDES.length)} aria-label="Prev"><ChevronLeft className="h-5 w-5"/></button>
+              <button className="rounded-lg border border-white/10 bg-white/5 p-2 text-white/90 hover:bg-white/10" onClick={()=>setI(n=>(n+1)%SLIDES.length)} aria-label="Next"><ChevronRight className="h-5 w-5"/></button>
+              <button className={cx("rounded-lg border border-white/10 p-2", paused?"bg-white/20":"bg-white/5 hover:bg-white/10")} onClick={()=>setPaused(p=>!p)} aria-label={paused?"Play":"Pause"}>{paused ? "▶" : "❚❚"}</button>
             </div>
           </div>
 
           <div className="mt-4 flex items-center gap-2 text-xs text-white/70">
             <HelpCircle className="h-4 w-4" />
-            <span>Kid-Safe Promise: We list enclosed/beginner printers and manually review STL content. See “Report” on each model.</span>
+            <span>Kid-Safe Promise: we list beginner printers and manually review STL content. Use “Report” on each model.</span>
           </div>
         </div>
       </div>
@@ -180,13 +202,10 @@ function TrustBar() {
   ];
   return (
     <div className="mx-auto grid max-w-7xl grid-cols-2 gap-3 px-6 pb-10 pt-2 md:grid-cols-4">
-      {items.map((x) => (
+      {items.map(x=>(
         <div key={x.t} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 text-white/90">
           <div className="grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/10">{x.icon}</div>
-          <div>
-            <div className="text-sm font-semibold">{x.t}</div>
-            <div className="text-xs text-white/70">{x.s}</div>
-          </div>
+          <div><div className="text-sm font-semibold">{x.t}</div><div className="text-xs text-white/70">{x.s}</div></div>
         </div>
       ))}
     </div>
@@ -205,15 +224,16 @@ function Rating({ value }: { value: number }) {
   );
 }
 
+/* ------------ SHOP ------------ */
 function Shop({ onAdd, links }: { onAdd: (id: string) => void; links: Record<string,string> }) {
   const [q, setQ] = React.useState("");
   const [cat, setCat] = React.useState<"All" | Product["category"]>("All");
   const [sort, setSort] = React.useState<"popular" | "price-asc" | "price-desc">("popular");
 
   const amazonTag = (links["amazon_tag"] || "").trim();
-  let items = PRODUCTS.filter((p) => (cat === "All" || p.category === cat) && p.name.toLowerCase().includes(q.toLowerCase()));
-  if (sort === "price-asc") items = items.sort((a, b) => a.price - b.price);
-  if (sort === "price-desc") items = items.sort((a, b) => b.price - a.price);
+  let items = PRODUCTS.filter(p => (cat==="All" || p.category===cat) && p.name.toLowerCase().includes(q.toLowerCase()));
+  if (sort==="price-asc") items = items.sort((a,b)=>a.price-b.price);
+  if (sort==="price-desc") items = items.sort((a,b)=>b.price-a.price);
 
   return (
     <section className="mx-auto max-w-7xl px-6 py-12">
@@ -222,13 +242,13 @@ function Shop({ onAdd, links }: { onAdd: (id: string) => void; links: Record<str
         <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row">
           <label className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
             <Search className="h-4 w-4 text-white/60" />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search…" className="w-56 bg-transparent text-sm text-white outline-none placeholder:text-white/50" />
+            <input value={q} onChange={(e)=>setQ(e.target.value)} placeholder="Search…" className="w-56 bg-transparent text-sm text-white outline-none placeholder:text-white/50" />
           </label>
           <div className="flex items-center gap-2">
-            <select className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm" value={cat} onChange={(e) => setCat(e.target.value as any)}>
+            <select className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm" value={cat} onChange={(e)=>setCat(e.target.value as any)}>
               <option>All</option><option>Printers</option><option>Kits</option>
             </select>
-            <select className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm" value={sort} onChange={(e) => setSort(e.target.value as any)}>
+            <select className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm" value={sort} onChange={(e)=>setSort(e.target.value as any)}>
               <option value="popular">Sort: Popular</option>
               <option value="price-asc">Price: Low → High</option>
               <option value="price-desc">Price: High → Low</option>
@@ -238,50 +258,114 @@ function Shop({ onAdd, links }: { onAdd: (id: string) => void; links: Record<str
       </div>
 
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
-        {items.map((p) => {
+        {items.map(p=>{
           const save = p.compareAt ? p.compareAt - p.price : 0;
           const direct = links[p.id];
           const url = buildAffiliateUrl(p.name, direct, amazonTag);
           return (
             <div key={p.id} className="rounded-2xl border border-white/10 bg-white/5 p-5 text-white backdrop-blur-sm">
-              <div className="mb-3">
-                <div className="grid aspect-[4/3] w-full place-items-center rounded-xl border border-white/10 bg-gradient-to-br from-zinc-800 to-zinc-900 text-white/60">{p.art}</div>
-              </div>
-              <div className="mb-1 flex items-center justify-between">
-                <h3 className="text-lg font-semibold">{p.name}</h3>
-                <Rating value={p.rating} />
-              </div>
+              <div className="mb-3"><div className="grid aspect-[4/3] w-full place-items-center rounded-xl border border-white/10 bg-gradient-to-br from-zinc-800 to-zinc-900 text-white/60">{p.art}</div></div>
+              <div className="mb-1 flex items-center justify-between"><h3 className="text-lg font-semibold">{p.name}</h3><Rating value={p.rating}/></div>
               <p className="mb-2 text-xs text-white/60">{p.reviews.toLocaleString()} reviews • {p.stock}</p>
               <p className="mb-3 text-sm text-white/80">{p.desc}</p>
               <div className="mb-4 flex items-end justify-between">
                 <div>
                   <div className="text-xl font-extrabold">{currency(p.price)}</div>
                   {p.compareAt && <div className="text-xs text-white/50 line-through">{currency(p.compareAt)}</div>}
-                  {save > 0 && <div className="text-xs text-emerald-400">Save {currency(save)}</div>}
+                  {save>0 && <div className="text-xs text-emerald-400">Save {currency(save)}</div>}
                 </div>
                 <div className="flex gap-2">
-                  <a href={url} target="_blank" rel="nofollow sponsored noopener"
-                     className="rounded-xl bg-emerald-500 px-3 py-2 font-semibold text-black hover:bg-emerald-400">Buy now</a>
-                  <button className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm hover:bg-white/10" onClick={() => onAdd(p.id)}>
-                    Add to cart
-                  </button>
+                  <a href={url} target="_blank" rel="nofollow sponsored noopener" className="rounded-xl bg-emerald-500 px-3 py-2 font-semibold text-black hover:bg-emerald-400">Buy now</a>
+                  <button className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm hover:bg-white/10" onClick={()=>onAdd(p.id)}>Add to cart</button>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-1">
-                {p.badges.map((b) => <span key={b} className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[11px]">{b}</span>)}
-              </div>
+              <div className="flex flex-wrap gap-1">{p.badges.map(b=><span key={b} className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[11px]">{b}</span>)}</div>
             </div>
           );
         })}
       </div>
 
       <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
-        <strong>Affiliate note:</strong> If you have an Amazon Associates tag, add it to <code>public/affiliates.json</code> as <code>"amazon_tag": "YOURTAG-20"</code>. We’ll add it to all Amazon links automatically.
+        <strong>Affiliate note:</strong> Add your Amazon tag in <code>public/affiliates.json</code> as <code>"amazon_tag": "kidprint3d-20"</code>. We auto-apply it to Amazon links/searches.
       </div>
     </section>
   );
 }
 
+/* ------------ BUNDLES ------------ */
+function Bundles({ links }: { links: Record<string,string> }) {
+  const amazonTag = (links["amazon_tag"] || "").trim();
+  const linkFor = (inc: Bundle["includes"][number]) => {
+    if (inc.ref) {
+      const p = PRODUCTS.find(x=>x.id===inc.ref)!;
+      return buildAffiliateUrl(p.name, links[p.id], amazonTag);
+    }
+    if (inc.search) return buildAmazonSearch(inc.search, amazonTag);
+    return "#";
+  };
+  const emailPO = (b: Bundle) => mailto(
+    "hello@kidprint3d.com",
+    `School quote: ${b.name}`,
+    `Hi KidPrint team,\n\nWe'd like a formal quote / PO assistance for:\nBundle: ${b.name}\nBest for: ${b.bestFor}\nEstimated total: ~$${b.estPrice}\n\nSchool name:\nContact name:\nQuantity:\nTimeline:\nNotes:\n`
+  );
+
+  return (
+    <section className="mx-auto max-w-7xl px-6 py-12">
+      <h2 className="mb-2 text-3xl font-extrabold text-white flex items-center gap-2"><GraduationCap className="h-7 w-7"/> School Bundles</h2>
+      <p className="mb-6 text-white/80">Pick a bundle, request a quote (POs welcome), or buy items individually via Amazon.</p>
+
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+        {BUNDLES.map(b=>(
+          <div key={b.id} className="rounded-2xl border border-white/10 bg-white/5 p-5 text-white">
+            <div className="mb-1 text-lg font-semibold">{b.name}</div>
+            <div className="text-sm text-white/70">{b.subtitle}</div>
+            <div className="mt-3 text-sm">
+              <div className="mb-1 font-semibold">Includes:</div>
+              <ul className="space-y-1">
+                {b.includes.map((inc, idx)=>{
+                  if (inc.ref) {
+                    const p = PRODUCTS.find(x=>x.id===inc.ref)!;
+                    const u = linkFor(inc);
+                    return (
+                      <li key={idx} className="flex items-center justify-between gap-2">
+                        <span>• {p.name}</span>
+                        <a href={u} target="_blank" rel="nofollow sponsored noopener" className="inline-flex items-center gap-1 text-xs underline">
+                          Buy <ExternalLink className="h-3 w-3"/>
+                        </a>
+                      </li>
+                    );
+                  }
+                  if (inc.search) {
+                    const u = linkFor(inc);
+                    return (
+                      <li key={idx} className="flex items-center justify-between gap-2">
+                        <span>• {inc.search}</span>
+                        <a href={u} target="_blank" rel="nofollow sponsored noopener" className="inline-flex items-center gap-1 text-xs underline">
+                          Search <ExternalLink className="h-3 w-3"/>
+                        </a>
+                      </li>
+                    );
+                  }
+                  return <li key={idx}>• {inc.custom}</li>;
+                })}
+              </ul>
+            </div>
+
+            <div className="mt-3 text-sm text-white/70">Best for: {b.bestFor}</div>
+            <div className="mt-2 text-xl font-extrabold">Est. ${b.estPrice.toFixed(0)}</div>
+
+            <div className="mt-4 flex gap-2">
+              <a href={emailPO(b)} className="rounded-xl bg-emerald-500 px-3 py-2 font-semibold text-black hover:bg-emerald-400">Request school quote</a>
+              <a href={mailto("hello@kidprint3d.com","Bundle questions: "+b.name)} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm hover:bg-white/10">Ask a question</a>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ------------ STL library ------------ */
 function STLPage() {
   type STL = { id: string; name: string; size: string; desc: string; download: string; thumb?: string; tags?: string[]; level?: "Easy" | "Intermediate" | "Advanced" };
   const FALLBACK: STL[] = [
@@ -348,22 +432,56 @@ function STLPage() {
   );
 }
 
+/* ------------ FAQ + Safety Cards (printable) ------------ */
+function printSafetyCards() {
+  const html = `<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KidPrint Safety Cards</title>
+<style>
+  body{font:16px/1.5 system-ui;margin:24px;color:#111}
+  h1{font-size:24px;margin:0 0 8px}
+  .card{border:1px solid #333;border-radius:12px;padding:16px;margin:12px 0}
+  .grid{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}
+  @media print {.print{display:none}}
+</style>
+<body>
+  <h1>KidPrint Safety Cards</h1>
+  <p>Post near your printer. Keep PLA only for home/classroom. Adult supervision required.</p>
+  <div class="grid">
+    <div class="card"><b>1. Supervise</b><br>Adults nearby during printing. No hands inside the printer while moving.</div>
+    <div class="card"><b>2. Enclosed</b><br>Keep door closed. Never touch the hot nozzle/bed.</div>
+    <div class="card"><b>3. Filament</b><br>Use PLA only. Ventilate room. Store spools away from kids.</div>
+    <div class="card"><b>4. Cleanup</b><br>Snips are sharp. Sweep small bits. Unplug when done.</div>
+    <div class="card"><b>5. Content</b><br>Only kid-safe models. Report anything questionable.</div>
+    <div class="card"><b>6. Profiles</b><br>Layer 0.2 mm, 15% infill. Supports only when needed.</div>
+  </div>
+  <button class="print" onclick="window.print()">Print</button>
+</body></html>`;
+  const w = window.open("", "_blank", "noopener,noreferrer");
+  if (w) { w.document.write(html); w.document.close(); }
+}
+
 function FAQ() {
   const faqs = [
-    { q: "Is 3D printing safe for kids?", a: "With supervision, enclosed printers, and PLA filament, it can be classroom-friendly. We verify models for content and share safety cards." },
-    { q: "What slicer should I use?", a: "We link beginner profiles that work out-of-the-box. You can still tweak layer height, infill, and supports as you learn." },
-    { q: "Do you provide school pricing?", a: "Yes—email hello@kidprint3d.com for quotes, purchase orders, and bundles." },
-    { q: "How do you verify STLs?", a: "We check for inappropriate themes, risky mechanisms, and printability. Community can report via the Report button on each model." },
+    { q: "Is 3D printing safe for kids?", a: "With supervision, enclosed printers, and PLA filament, it can be classroom-friendly. We verify models and provide printable Safety Cards." },
+    { q: "What slicer should I use?", a: "We link beginner profiles that work out-of-the-box. Start 0.2 mm layer, 15% infill, supports only when needed." },
+    { q: "Do you provide school pricing?", a: "Yes—use the School Bundles page to request a quote or email hello@kidprint3d.com." },
+    { q: "How do you verify STLs?", a: "We check for content appropriateness, risky mechanisms, and printability. Community can report with one click." },
   ];
   const [open, setOpen] = React.useState<string | null>(faqs[0].q);
   return (
     <section className="mx-auto max-w-5xl px-6 pb-12">
       <h3 className="mb-4 text-center text-2xl font-extrabold text-white">FAQ</h3>
+      <div className="mb-4 flex justify-center">
+        <button onClick={printSafetyCards} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-white hover:bg-white/10">
+          <ClipboardCheck className="h-4 w-4"/> Print Safety Cards
+        </button>
+      </div>
       <div className="divide-y divide-white/10 rounded-2xl border border-white/10 bg-white/5">
-        {faqs.map(f => (
-          <button key={f.q} onClick={() => setOpen(open === f.q ? null : f.q)} className="w-full p-4 text-left text-white">
-            <div className="flex items-center justify-between"><span className="font-semibold">{f.q}</span><ChevronDown className={cx("h-4 w-4 transition-transform", open === f.q && "rotate-180")} /></div>
-            {open === f.q && <p className="mt-2 text-sm text-white/80">{f.a}</p>}
+        {faqs.map(f=>(
+          <button key={f.q} onClick={()=>setOpen(open===f.q?null:f.q)} className="w-full p-4 text-left text-white">
+            <div className="flex items-center justify-between"><span className="font-semibold">{f.q}</span><ChevronDown className={cx("h-4 w-4 transition-transform", open===f.q && "rotate-180")} /></div>
+            {open===f.q && <p className="mt-2 text-sm text-white/80">{f.a}</p>}
           </button>
         ))}
       </div>
@@ -371,9 +489,9 @@ function FAQ() {
   );
 }
 
-/* ------------ main app + inline Privacy/Terms ------------ */
+/* ------------ APP ------------ */
 export default function App() {
-  const [tab, setTab] = React.useState<"home" | "shop" | "stls" | "learn">("home");
+  const [tab, setTab] = React.useState<"home" | "shop" | "bundles" | "stls" | "learn">("home");
   const [cartOpen, setCartOpen] = React.useState(false);
   const [cart, setCart] = React.useState<{ id: string; qty: number }[]>([]);
   const [showPrivacy, setShowPrivacy] = React.useState(false);
@@ -393,8 +511,10 @@ export default function App() {
             <span className="font-black">KidPrint</span>
           </button>
           <nav className="hidden items-center gap-2 md:flex">
-            {(["home", "shop", "stls", "learn"] as const).map(t => (
-              <button key={t} className={cx("rounded-xl border border-white/10 bg-white/5 px-3 py-2 font-semibold hover:bg-white/10", tab === t && "bg-white/15")} onClick={() => setTab(t)}>{t === "stls" ? "STL Library" : t[0].toUpperCase() + t.slice(1)}</button>
+            {(["home", "shop", "bundles", "stls", "learn"] as const).map(t => (
+              <button key={t} className={cx("rounded-xl border border-white/10 bg-white/5 px-3 py-2 font-semibold hover:bg-white/10", tab === t && "bg-white/15")} onClick={() => setTab(t)}>
+                {t === "stls" ? "STL Library" : t[0].toUpperCase() + t.slice(1)}
+              </button>
             ))}
           </nav>
           <div className="flex items-center gap-2">
@@ -410,11 +530,12 @@ export default function App() {
 
       {tab === "home" && (<><HeroSlider goTab={(v) => setTab(v)} /><TrustBar /><FAQ /></>)}
       {tab === "shop" && <Shop onAdd={add} links={affiliates} />}
+      {tab === "bundles" && <Bundles links={affiliates} />}
       {tab === "stls" && <STLPage />}
       {tab === "learn" && (
         <section className="mx-auto max-w-5xl px-6 py-12">
           <h2 className="mb-2 text-3xl font-extrabold">Parents & Teachers</h2>
-          <p className="mb-6 text-white/80">Free, plain-English guidance for home and classroom use.</p>
+          <p className="mb-6 text-white/80">Plain-English guidance for home and classroom use.</p>
           <ul className="grid list-none grid-cols-1 gap-4 md:grid-cols-2">
             {[
               { t: "Quickstart (10 minutes)", d: "Unbox, auto-level, load PLA, first print Benchy." },
@@ -429,11 +550,12 @@ export default function App() {
             ))}
           </ul>
 
-          <div className="mt-6 rounded-2xl border border-white/10 bg-emerald-500/10 p-4">
-            <div className="mb-1 text-lg font-semibold">School pricing / questions</div>
-            <p className="mb-3 text-sm text-white/80">Email us and we’ll reply within 1 business day.</p>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <a onClick={printSafetyCards} className="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-white hover:bg-white/10">
+              <ClipboardCheck className="h-4 w-4"/> Print Safety Cards
+            </a>
             <a href={mailto("hello@kidprint3d.com","School pricing request","Tell us your school name, quantity, and timeframe.")} className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2 font-semibold text-black hover:bg-emerald-400">
-              <Mail className="h-4 w-4" /> Email hello@kidprint3d.com
+              <Mail className="h-4 w-4" /> Email school pricing
             </a>
           </div>
         </section>
@@ -493,11 +615,8 @@ export default function App() {
             <div className="absolute inset-0 bg-black/50" onClick={() => setShowPrivacy(false)} />
             <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}
               className="absolute left-1/2 top-20 w-[92vw] max-w-xl -translate-x-1/2 rounded-2xl border border-white/10 bg-zinc-900 p-5 text-sm">
-              <div className="mb-2 flex items-center justify-between">
-                <div className="text-lg font-semibold">Privacy</div>
-                <button onClick={() => setShowPrivacy(false)} className="rounded-md border border-white/10 px-2 py-1">Close</button>
-              </div>
-              <p className="text-white/80">We don’t sell personal data. If you email us, we use your email only to reply. We don’t track you across sites. For analytics, we recommend privacy-friendly Cloudflare Web Analytics. You can request deletion anytime: hello@kidprint3d.com.</p>
+              <div className="mb-2 flex items-center justify-between"><div className="text-lg font-semibold">Privacy</div><button onClick={() => setShowPrivacy(false)} className="rounded-md border border-white/10 px-2 py-1">Close</button></div>
+              <p className="text-white/80">We don’t sell personal data. If you email us, we use your email only to reply. For analytics we recommend privacy-friendly Cloudflare Web Analytics. Request deletion anytime: hello@kidprint3d.com.</p>
             </motion.div>
           </motion.div>
         )}
@@ -510,11 +629,8 @@ export default function App() {
             <div className="absolute inset-0 bg-black/50" onClick={() => setShowTerms(false)} />
             <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}
               className="absolute left-1/2 top-20 w-[92vw] max-w-xl -translate-x-1/2 rounded-2xl border border-white/10 bg-zinc-900 p-5 text-sm">
-              <div className="mb-2 flex items-center justify-between">
-                <div className="text-lg font-semibold">Terms</div>
-                <button onClick={() => setShowTerms(false)} className="rounded-md border border-white/10 px-2 py-1">Close</button>
-              </div>
-              <p className="text-white/80">All content is provided “as-is.” Always supervise kids around printers. Use PLA for school/home. By using this site you agree to our safety guidelines and disclosures. Some links are affiliate links; they don’t change our recommendations.</p>
+              <div className="mb-2 flex items-center justify-between"><div className="text-lg font-semibold">Terms</div><button onClick={() => setShowTerms(false)} className="rounded-md border border-white/10 px-2 py-1">Close</button></div>
+              <p className="text-white/80">All content provided “as-is.” Always supervise kids around printers. Use PLA for school/home. Some links are affiliate links; they do not change our recommendations.</p>
             </motion.div>
           </motion.div>
         )}
