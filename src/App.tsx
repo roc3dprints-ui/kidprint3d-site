@@ -159,19 +159,36 @@ function Shop({ onAdd }: { onAdd: (id: string) => void }) {
 }
 
 function STLPage() {
+  type STL = { id: string; name: string; size: string; desc: string; download: string; thumb?: string };
+  const FALLBACK: STL[] = [
+    { id: "stl-benchy", name: "Benchy (test boat)", size: "~60 × 31 × 48", desc: "Calibration boat for first prints.", download: "#", thumb: "/stls/benchy.svg" },
+    { id: "stl-bookmark", name: "Bookmark Tab", size: "120 × 35 × 2", desc: "Rounded bookmark.", download: "#", thumb: "/stls/bookmark.svg" },
+    { id: "stl-gears", name: "Gear Pair", size: "Ø60 • Ø40", desc: "Two demo gears.", download: "#", thumb: "/stls/gears.svg" },
+  ];
+  const [items, setItems] = React.useState<STL[]>(FALLBACK);
+
+  React.useEffect(() => {
+    fetch("/stls.json").then(r => r.ok ? r.json() : FALLBACK).then(setItems).catch(() => setItems(FALLBACK));
+  }, []);
+
   return (
     <section id="stls" className="mx-auto max-w-7xl px-6 py-12">
       <div className="mb-6 text-center">
         <h2 className="text-3xl font-extrabold text-white">STL Library</h2>
-        <p className="mx-auto mt-2 max-w-2xl text-sm text-white/80">Verified kid-friendly models. Every STL is reviewed for content and printability.</p>
+        <p className="mx-auto mt-2 max-w-2xl text-sm text-white/80">
+          Verified kid-friendly models. Every STL is reviewed for content and printability.
+        </p>
       </div>
       <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-        {STLS.map((s) => (
+        {items.map((s) => (
           <div key={s.id} className="rounded-2xl border border-white/10 bg-white/5 p-5 text-white">
-            <div className="mb-2 font-semibold">{s.name}</div>
+            {s.thumb && <img src={s.thumb} alt={s.name} className="mb-3 aspect-[4/3] w-full rounded-xl border border-white/10 object-cover" />}
+            <div className="mb-1 font-semibold">{s.name}</div>
             <div className="text-xs text-white/70">{s.size}</div>
             <p className="mt-2 text-sm text-white/80">{s.desc}</p>
-            <a href={s.download} className="mt-3 inline-block rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm font-semibold hover:bg-white/15" download>Download STL</a>
+            <a href={s.download} className="mt-3 inline-block rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm font-semibold hover:bg-white/15" download>
+              Download STL
+            </a>
           </div>
         ))}
       </div>
