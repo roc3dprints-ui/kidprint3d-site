@@ -1,1 +1,27 @@
+[
+  {
+    "id": "stl-benchy",
+    "name": "Benchy (test boat)",
+    "size": "~60 × 31 × 48",
+    "desc": "Calibration boat for first prints.",
+    "download": "#",
+    "thumb": "/stls/benchy.svg"
+  },
+  {
+    "id": "stl-bookmark",
+    "name": "Bookmark Tab",
+    "size": "120 × 35 × 2",
+    "desc": "Rounded bookmark.",
+    "download": "#",
+    "thumb": "/stls/bookmark.svg"
+  },
+  {
+    "id": "stl-gears",
+    "name": "Gear Pair",
+    "size": "Ø60 • Ø40",
+    "desc": "Two demo gears.",
+    "download": "#",
+    "thumb": "/stls/gears.svg"
+  }
+]
 
