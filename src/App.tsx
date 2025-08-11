@@ -1,13 +1,17 @@
 import React from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  ShoppingCart, X, Star, ChevronLeft, ChevronRight, ShieldCheck, ChevronDown,
-  PackageCheck, Truck, Sparkles, Filter, Search, Info
+  ShoppingCart, X, Star, ChevronLeft, ChevronRight, ShieldCheck,
+  ChevronDown, PackageCheck, Truck, Sparkles, Search, Filter, Info, Mail
 } from "lucide-react";
 
-/* ---------- helpers ---------- */
+/* ------------ helpers ------------ */
 const currency = (n: number) => `$${n.toFixed(2)}`;
 const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");
+const mailto = (to: string, subject: string, body = "") =>
+  `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+/* ------------ affiliates loader (edit links in /public/affiliates.json) ------------ */
 type Affiliates = Record<string, string>;
 function useAffiliates() {
   const [links, setLinks] = React.useState<Affiliates>({});
@@ -17,7 +21,7 @@ function useAffiliates() {
   return links;
 }
 
-/* ---------- data (you can edit later) ---------- */
+/* ------------ data ------------ */
 type Product = {
   id: string; name: string; price: number; compareAt?: number; desc: string;
   badges: string[]; specs: string[]; art: string; category: "Printers" | "Kits";
@@ -35,7 +39,7 @@ const PRODUCTS: Product[] = [
     category: "Kits", rating: 4.6, reviews: 98, stock: "In stock" },
 ];
 
-/* ---------- SEO per tab ---------- */
+/* ------------ SEO ------------ */
 function useSEO(tab: "home" | "shop" | "stls" | "learn") {
   React.useEffect(() => {
     const title = {
@@ -52,7 +56,7 @@ function useSEO(tab: "home" | "shop" | "stls" | "learn") {
   }, [tab]);
 }
 
-/* ---------- components ---------- */
+/* ------------ UI parts ------------ */
 const SLIDES = [
   { id: "printers", h1: "Enclosed printers built for families.", p: "Quiet, auto-level, and ready in 10 minutes." },
   { id: "stls", h1: "Verified kid-friendly STL library.", p: "Curated by humans. Classroom-safe. Free to start." },
@@ -179,6 +183,7 @@ function Shop({ onAdd, links }: { onAdd: (id: string) => void; links: Record<str
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
         {items.map((p) => {
           const save = p.compareAt ? p.compareAt - p.price : 0;
+          const url = links[p.id];
           return (
             <div key={p.id} className="rounded-2xl border border-white/10 bg-white/5 p-5 text-white backdrop-blur-sm">
               <div className="mb-3">
@@ -197,8 +202,15 @@ function Shop({ onAdd, links }: { onAdd: (id: string) => void; links: Record<str
                   {save > 0 && <div className="text-xs text-emerald-400">Save {currency(save)}</div>}
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => onAdd(p.id)} className="rounded-xl bg-emerald-500 px-3 py-2 font-semibold text-black hover:bg-emerald-400">Add to cart</button>
-                  <button className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm hover:bg-white/10" onClick={() => alert(`Specs:\n• ${p.specs.join("\n• ")}`)}><Info className="mr-1 inline h-4 w-4" /> Details</button>
+                  {url ? (
+                    <a href={url} target="_blank" rel="nofollow sponsored noopener"
+                       className="rounded-xl bg-emerald-500 px-3 py-2 font-semibold text-black hover:bg-emerald-400">Buy now</a>
+                  ) : (
+                    <button disabled className="cursor-not-allowed rounded-xl bg-zinc-700/60 px-3 py-2 font-semibold text-white/70">Buy (soon)</button>
+                  )}
+                  <button className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm hover:bg-white/10" onClick={() => onAdd(p.id)}>
+                    Add to cart
+                  </button>
                 </div>
               </div>
               <div className="flex flex-wrap gap-1">
@@ -232,6 +244,12 @@ function STLPage() {
     (s.name.toLowerCase().includes(q.toLowerCase()) || (s.tags || []).some(t => t.toLowerCase().includes(q.toLowerCase())))
   );
 
+  const reportLink = (s: STL) => mailto(
+    "hello@kidprint3d.com",
+    `Report STL: ${s.name} (${s.id})`,
+    `Model: ${s.name}\nID: ${s.id}\nReason: `
+  );
+
   return (
     <section className="mx-auto max-w-7xl px-6 py-12">
       <div className="mb-6 flex flex-col items-start gap-3 md:flex-row md:items-center md:justify-between">
@@ -261,7 +279,10 @@ function STLPage() {
             <div className="text-xs text-white/70">{s.size} {s.level && <span className="ml-2 rounded border border-white/10 px-1 py-0.5">{s.level}</span>}</div>
             <p className="mt-2 text-sm text-white/80">{s.desc}</p>
             <div className="mt-2 flex flex-wrap gap-1">{(s.tags || []).map(t => <span key={t} className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[11px]">{t}</span>)}</div>
-            <a href={s.download} className="mt-3 inline-block rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm font-semibold hover:bg-white/15" download>Download STL</a>
+            <div className="mt-3 flex gap-2">
+              <a href={s.download} className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm font-semibold hover:bg-white/15" download>Download STL</a>
+              <a href={reportLink(s)} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm hover:bg-white/10">Report</a>
+            </div>
           </div>
         ))}
       </div>
@@ -291,11 +312,12 @@ function FAQ() {
   );
 }
 
-/* ---------- main app ---------- */
+/* ------------ main app ------------ */
 export default function App() {
   const [tab, setTab] = React.useState<"home" | "shop" | "stls" | "learn">("home");
   const [cartOpen, setCartOpen] = React.useState(false);
   const [cart, setCart] = React.useState<{ id: string; qty: number }[]>([]);
+  const affiliates = useAffiliates();
   useSEO(tab);
   const count = cart.reduce((a, i) => a + i.qty, 0);
   const add = (id: string) => { setCart(c => (c.find(x => x.id === id) ? c.map(x => x.id === id ? { ...x, qty: x.qty + 1 } : x) : [...c, { id, qty: 1 }])); setCartOpen(true); };
@@ -314,6 +336,9 @@ export default function App() {
             ))}
           </nav>
           <div className="flex items-center gap-2">
+            <a href={mailto("hello@kidprint3d.com","Hello from KidPrint visitor")} className="hidden rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm hover:bg-white/10 md:inline-flex items-center gap-2">
+              <Mail className="h-4 w-4" /> Email us
+            </a>
             <button className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 font-semibold hover:bg-white/10" onClick={() => setCartOpen(true)}>
               <ShoppingCart className="h-4 w-4" /> Cart ({count})
             </button>
@@ -322,7 +347,7 @@ export default function App() {
       </header>
 
       {tab === "home" && (<><HeroSlider goTab={(v) => setTab(v)} /><TrustBar /><FAQ /></>)}
-      {tab === "shop" && <Shop onAdd={add} />}
+      {tab === "shop" && <Shop onAdd={add} links={affiliates} />}
       {tab === "stls" && <STLPage />}
       {tab === "learn" && (
         <section className="mx-auto max-w-5xl px-6 py-12">
@@ -341,11 +366,24 @@ export default function App() {
               </li>
             ))}
           </ul>
+
+          <div className="mt-6 rounded-2xl border border-white/10 bg-emerald-500/10 p-4">
+            <div className="mb-1 text-lg font-semibold">School pricing / questions</div>
+            <p className="mb-3 text-sm text-white/80">Email us and we’ll reply within 1 business day.</p>
+            <a href={mailto("hello@kidprint3d.com","School pricing request","Tell us your school name, quantity, and timeframe.")} className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2 font-semibold text-black hover:bg-emerald-400">
+              <Mail className="h-4 w-4" /> Email hello@kidprint3d.com
+            </a>
+          </div>
         </section>
       )}
 
       <footer className="border-t border-white/10 py-8 text-center text-sm text-white/70">
-        <div className="mx-auto max-w-7xl px-6">© {new Date().getFullYear()} KidPrint • hello@kidprint3d.com</div>
+        <div className="mx-auto max-w-7xl px-6">
+          © {new Date().getFullYear()} KidPrint • hello@kidprint3d.com
+          <div className="mt-2 text-xs text-white/60">
+            Disclosure: As an Amazon Associate we earn from qualifying purchases. Some “Buy” links are affiliate links.
+          </div>
+        </div>
       </footer>
 
       {/* Cart drawer */}
