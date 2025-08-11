@@ -1,3 +1,0 @@
-User-agent: *
-Allow: /
-Sitemap: https://kidprint3d.com/sitemap.xml
