@@ -1003,6 +1003,10 @@ function STLPage() {
 
 /* =========================================================
    App
+// --- temporary stub so builds pass ---
+function FAQ() {
+  return null; // we'll replace with the real component after deploy
+}
    =======================================================*/
 export default function App() {
   const [tab, setTab] = React.useState<
