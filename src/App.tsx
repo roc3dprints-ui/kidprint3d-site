@@ -469,7 +469,62 @@ function printSafetyCards() {
   const w = window.open("", "_blank", "noopener,noreferrer");
   if (w) { w.document.write(html); w.document.close(); }
 }
+/* ------------ FAQ + Safety Cards (printable) ------------ */
+function printSafetyCards() {
+  const html = `<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KidPrint Safety Cards</title>
+<style>
+  body{font:16px/1.5 system-ui;margin:24px;color:#111}
+  h1{font-size:24px;margin:0 0 8px}
+  .card{border:1px solid #333;border-radius:12px;padding:16px;margin:12px 0}
+  .grid{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}
+  @media print {.print{display:none}}
+</style>
+<body>
+  <h1>KidPrint Safety Cards</h1>
+  <p>Post near your printer. Keep PLA only for home/classroom. Adult supervision required.</p>
+  <div class="grid">
+    <div class="card"><b>1. Supervise</b><br>Adults nearby during printing. No hands inside the printer while moving.</div>
+    <div class="card"><b>2. Enclosed</b><br>Keep door closed. Never touch the hot nozzle/bed.</div>
+    <div class="card"><b>3. Filament</b><br>Use PLA only. Ventilate room. Store spools away from kids.</div>
+    <div class="card"><b>4. Cleanup</b><br>Snips are sharp. Sweep small bits. Unplug when done.</div>
+    <div class="card"><b>5. Content</b><br>Only kid-safe models. Report anything questionable.</div>
+    <div class="card"><b>6. Profiles</b><br>Layer 0.2 mm, 15% infill. Supports only when needed.</div>
+  </div>
+  <button class="print" onclick="window.print()">Print</button>
+</body></html>`;
+  const w = window.open("", "_blank", "noopener,noreferrer");
+  if (w) { w.document.write(html); w.document.close(); }
+}
 
+function FAQ() {
+  const faqs = [
+    { q: "Is 3D printing safe for kids?", a: "With supervision, enclosed printers, and PLA filament, it can be classroom-friendly. We verify models and provide printable Safety Cards." },
+    { q: "What slicer should I use?", a: "We link beginner profiles that work out-of-the-box. Start 0.2 mm layer, 15% infill, supports only when needed." },
+    { q: "Do you provide school pricing?", a: "Yes—use the School Bundles page to request a quote or email hello@kidprint3d.com." },
+    { q: "How do you verify STLs?", a: "We check for content appropriateness, risky mechanisms, and printability. Community can report with one click." },
+  ];
+  const [open, setOpen] = React.useState<string | null>(faqs[0].q);
+  return (
+    <section className="mx-auto max-w-5xl px-6 pb-12">
+      <h3 className="mb-4 text-center text-2xl font-extrabold text-white">FAQ</h3>
+      <div className="mb-4 flex justify-center">
+        <button onClick={printSafetyCards} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-white hover:bg-white/10">
+          <ClipboardCheck className="h-4 w-4"/> Print Safety Cards
+        </button>
+      </div>
+      <div className="divide-y divide-white/10 rounded-2xl border border-white/10 bg-white/5">
+        {faqs.map(f=>(
+          <button key={f.q} onClick={()=>setOpen(open===f.q?null:f.q)} className="w-full p-4 text-left text-white">
+            <div className="flex items-center justify-between"><span className="font-semibold">{f.q}</span><ChevronDown className={`h-4 w-4 transition-transform ${open===f.q ? "rotate-180" : ""}`} /></div>
+            {open===f.q && <p className="mt-2 text-sm text-white/80">{f.a}</p>}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
 /* ------------ APP ------------ */
 export default function App() {
   const [tab, setTab] = React.useState<"home" | "shop" | "bundles" | "stls" | "learn">("home");
