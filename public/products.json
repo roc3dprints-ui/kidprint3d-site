@@ -1,0 +1,108 @@
+[
+  {
+    "id": "printer-tina2s",
+    "name": "Tina2S 3D Printer",
+    "price": 259,
+    "compareAt": 299,
+    "desc": "Compact enclosed printer; quiet and beginner-friendly.",
+    "badges": ["Kid-Friendly", "Auto-Level", "Wi-Fi"],
+    "specs": ["100×120×100 mm", "0.4 mm nozzle", "PLA"],
+    "img": "/img/printer-tina2s.jpg",
+    "category": "Printers",
+    "rating": 4.8,
+    "reviews": 312,
+    "stock": "In stock"
+  },
+
+  /* ---- Top 5 enclosed picks (edit names/links later) ---- */
+  {
+    "id": "enclosed-1",
+    "name": "Compact Enclosed A",
+    "price": 399,
+    "compareAt": 449,
+    "desc": "Fully enclosed, quiet operation, easy setup.",
+    "badges": ["Enclosed", "Quiet", "Touchscreen"],
+    "specs": ["120×120×120 mm", "0.4 mm nozzle", "PLA/TPU"],
+    "img": "/img/enclosed-1.jpg",
+    "category": "Printers",
+    "rating": 4.7,
+    "reviews": 210,
+    "stock": "In stock",
+    "direct": ""
+  },
+  {
+    "id": "enclosed-2",
+    "name": "Classroom Enclosed B",
+    "price": 429,
+    "compareAt": 479,
+    "desc": "Door sensor, filament runout, auto-level.",
+    "badges": ["Enclosed", "Auto-Level"],
+    "specs": ["150×150×150 mm", "0.4 mm nozzle", "PLA"],
+    "img": "/img/enclosed-2.jpg",
+    "category": "Printers",
+    "rating": 4.6,
+    "reviews": 168,
+    "stock": "In stock",
+    "direct": ""
+  },
+  {
+    "id": "enclosed-3",
+    "name": "Quiet Enclosed C",
+    "price": 499,
+    "compareAt": 549,
+    "desc": "Low noise profile for small spaces.",
+    "badges": ["Enclosed", "Quiet"],
+    "specs": ["180×180×180 mm", "0.4 mm nozzle", "PLA/TPU"],
+    "img": "/img/enclosed-3.jpg",
+    "category": "Printers",
+    "rating": 4.6,
+    "reviews": 132,
+    "stock": "In stock",
+    "direct": ""
+  },
+  {
+    "id": "enclosed-4",
+    "name": "Family Enclosed D",
+    "price": 449,
+    "compareAt": 499,
+    "desc": "Door sensor + kid-friendly prompts.",
+    "badges": ["Enclosed", "Kid-Friendly"],
+    "specs": ["170×170×170 mm", "0.4 mm nozzle", "PLA"],
+    "img": "/img/enclosed-4.jpg",
+    "category": "Printers",
+    "rating": 4.5,
+    "reviews": 99,
+    "stock": "In stock",
+    "direct": ""
+  },
+  {
+    "id": "enclosed-5",
+    "name": "Edu Enclosed E",
+    "price": 469,
+    "compareAt": 519,
+    "desc": "Great for lesson plans and demos.",
+    "badges": ["Enclosed", "Classroom"],
+    "specs": ["200×200×200 mm", "0.4 mm nozzle", "PLA"],
+    "img": "/img/enclosed-5.jpg",
+    "category": "Printers",
+    "rating": 4.6,
+    "reviews": 121,
+    "stock": "In stock",
+    "direct": ""
+  },
+
+  {
+    "id": "starter-kit",
+    "name": "Starter Classroom Kit",
+    "price": 89,
+    "compareAt": null,
+    "desc": "PLA spools + tools + safety cards for first week.",
+    "badges": ["2× PLA", "Tools", "Safety Cards"],
+    "specs": ["2× 1kg PLA", "Snips", "Glue stick"],
+    "img": "/img/starter-kit.jpg",
+    "category": "Kits",
+    "rating": 4.6,
+    "reviews": 98,
+    "stock": "In stock"
+  }
+]
