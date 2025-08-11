@@ -1007,6 +1007,7 @@ function STLPage() {
 function FAQ() {
   return null; // we'll replace with the real component after deploy
 }
+function FAQ() { return null; }
    =======================================================*/
 export default function App() {
   const [tab, setTab] = React.useState<
