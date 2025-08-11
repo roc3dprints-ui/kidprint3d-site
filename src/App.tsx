@@ -8,6 +8,14 @@ import {
 /* ---------- helpers ---------- */
 const currency = (n: number) => `$${n.toFixed(2)}`;
 const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");
+type Affiliates = Record<string, string>;
+function useAffiliates() {
+  const [links, setLinks] = React.useState<Affiliates>({});
+  React.useEffect(() => {
+    fetch("/affiliates.json").then(r => r.ok ? r.json() : {}).then(setLinks).catch(()=>{});
+  }, []);
+  return links;
+}
 
 /* ---------- data (you can edit later) ---------- */
 type Product = {
@@ -137,7 +145,7 @@ function Rating({ value }: { value: number }) {
   );
 }
 
-function Shop({ onAdd }: { onAdd: (id: string) => void }) {
+function Shop({ onAdd, links }: { onAdd: (id: string) => void; links: Record<string,string> }) {
   const [q, setQ] = React.useState("");
   const [cat, setCat] = React.useState<"All" | Product["category"]>("All");
   const [sort, setSort] = React.useState<"popular" | "price-asc" | "price-desc">("popular");
