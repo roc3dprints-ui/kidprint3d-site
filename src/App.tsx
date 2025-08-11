@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   ShoppingCart, X, Star, ChevronLeft, ChevronRight, ShieldCheck,
   ChevronDown, PackageCheck, Truck, Sparkles, Search, Filter, Mail,
-  HelpCircle, GraduationCap, ClipboardCheck, ExternalLink
+  HelpCircle, GraduationCap, ClipboardCheck, ExternalLink, Share2, Link as LinkIcon
 } from "lucide-react";
 
 /* ------------ helpers ------------ */
@@ -11,6 +11,19 @@ const currency = (n: number) => `$${n.toFixed(2)}`;
 const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");
 const mailto = (to: string, subject: string, body = "") =>
   `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+/* Small component that gracefully falls back if an image fails */
+function Img({ src, alt, className, fallbackLabel }: { src?: string; alt: string; className?: string; fallbackLabel?: string }) {
+  const [ok, setOk] = React.useState(true);
+  if (src && ok) {
+    return <img src={src} alt={alt} className={className} onError={() => setOk(false)} loading="lazy" />;
+  }
+  return (
+    <div className={cx("grid place-items-center bg-gradient-to-br from-zinc-800 to-zinc-900 text-white/60", className)}>
+      {fallbackLabel || "image"}
+    </div>
+  );
+}
 
 /* ------------ affiliates loader (edit links in /public/affiliates.json) ------------ */
 type Affiliates = Record<string, string>;
@@ -33,69 +46,48 @@ function buildAffiliateUrl(pName: string, direct?: string, amazonTag?: string) {
 /* ------------ catalog ------------ */
 type Product = {
   id: string; name: string; price: number; compareAt?: number; desc: string;
-  badges: string[]; specs: string[]; art: string; category: "Printers" | "Kits";
+  badges: string[]; specs: string[]; img?: string; category: "Printers" | "Kits";
   rating: number; reviews: number; stock: "In stock" | "Backorder";
 };
 const PRODUCTS: Product[] = [
   { id: "printer-tina2s", name: "Tina2S 3D Printer", price: 259, compareAt: 299, desc: "Compact enclosed printer; quiet and beginner-friendly.",
-    badges: ["Kid-Friendly", "Auto-Level", "Wi-Fi"], specs: ["100×120×100 mm", "0.4 mm nozzle", "PLA"], art: "tina2s",
+    badges: ["Kid-Friendly", "Auto-Level", "Wi-Fi"], specs: ["100×120×100 mm", "0.4 mm nozzle", "PLA"], img: "/img/printer-tina2s.jpg",
     category: "Printers", rating: 4.8, reviews: 312, stock: "In stock" },
   { id: "enclosed-kid-printer", name: "Enclosed Kid Printer", price: 399, compareAt: 449, desc: "Fully enclosed, safer around curious hands.",
-    badges: ["Quiet", "Auto-Level", "Touchscreen"], specs: ["120×120×120 mm", "0.4 mm nozzle", "PLA/TPU"], art: "enclosed",
+    badges: ["Quiet", "Auto-Level", "Touchscreen"], specs: ["120×120×120 mm", "0.4 mm nozzle", "PLA/TPU"], img: "/img/enclosed-kid-printer.jpg",
     category: "Printers", rating: 4.7, reviews: 201, stock: "In stock" },
   { id: "starter-kit", name: "Starter Classroom Kit", price: 89, desc: "PLA spools + tools + safety cards for first week.",
-    badges: ["2× PLA", "Tools", "Safety Cards"], specs: ["2× 1kg PLA", "Snips", "Glue stick"], art: "kit",
+    badges: ["2× PLA", "Tools", "Safety Cards"], specs: ["2× 1kg PLA", "Snips", "Glue stick"], img: "/img/starter-kit.jpg",
     category: "Kits", rating: 4.6, reviews: 98, stock: "In stock" },
 ];
 
-/* ------------ bundles (money + schools) ------------ */
+/* ------------ bundles ------------ */
 type Bundle = {
-  id: string;
-  name: string;
-  subtitle: string;
-  includes: { ref?: Product["id"]; custom?: string; search?: string }[]; // ref = product by id, custom = free item, search = Amazon search query
-  estPrice: number;
-  bestFor: string;
+  id: string; name: string; subtitle: string;
+  includes: { ref?: Product["id"]; custom?: string; search?: string }[];
+  estPrice: number; bestFor: string;
 };
 const BUNDLES: Bundle[] = [
   {
     id: "bundle-home",
     name: "Home Starter Bundle",
     subtitle: "Perfect first setup for families",
-    includes: [
-      { ref: "printer-tina2s" },
-      { search: "PLA 1.75mm 2 pack kid friendly" },
-      { custom: "Safety Cards (printable)" }
-    ],
-    estPrice: 259 + 30,
-    bestFor: "Ages 8+ with supervision"
+    includes: [{ ref: "printer-tina2s" }, { search: "PLA 1.75mm 2 pack kid friendly" }, { custom: "Safety Cards (printable)" }],
+    estPrice: 259 + 30, bestFor: "Ages 8+ with supervision"
   },
   {
     id: "bundle-classroom",
     name: "Classroom Essentials",
     subtitle: "One enclosed printer + classroom supplies",
-    includes: [
-      { ref: "enclosed-kid-printer" },
-      { search: "PLA 1.75mm 4 pack classroom" },
-      { search: "Nozzle cleaning kit 0.4mm" },
-      { custom: "Safety Cards (printable)" }
-    ],
-    estPrice: 399 + 55,
-    bestFor: "1–2 small groups; curriculum pilots"
+    includes: [{ ref: "enclosed-kid-printer" }, { search: "PLA 1.75mm 4 pack classroom" }, { search: "Nozzle cleaning kit 0.4mm" }, { custom: "Safety Cards (printable)" }],
+    estPrice: 399 + 55, bestFor: "1–2 small groups; curriculum pilots"
   },
   {
     id: "bundle-lab",
     name: "STEM Lab Pack",
     subtitle: "Two printers + consumables + quickstart",
-    includes: [
-      { ref: "enclosed-kid-printer" },
-      { ref: "printer-tina2s" },
-      { search: "PLA 1.75mm assorted colors 6 pack" },
-      { search: "Spare 0.4mm brass nozzle 5 pack" },
-      { custom: "Safety Cards (printable)" }
-    ],
-    estPrice: 399 + 259 + 90,
-    bestFor: "Makerspaces & after-school"
+    includes: [{ ref: "enclosed-kid-printer" }, { ref: "printer-tina2s" }, { search: "PLA 1.75mm assorted colors 6 pack" }, { search: "Spare 0.4mm brass nozzle 5 pack" }, { custom: "Safety Cards (printable)" }],
+    estPrice: 399 + 259 + 90, bestFor: "Makerspaces & after-school"
   }
 ];
 
@@ -117,75 +109,90 @@ function useSEO(tab: "home" | "shop" | "bundles" | "stls" | "learn") {
     if (!desc) { desc = document.createElement("meta"); desc.setAttribute("name", "description"); document.head.appendChild(desc); }
     desc.setAttribute("content", descText);
 
-    // JSON-LD: Org + ItemList of bundles (names only for now)
     const ldOrg = { "@context":"https://schema.org","@type":"Organization","name":"KidPrint","url":"https://kidprint3d.com","logo":"https://kidprint3d.com/favicon.svg" };
-    const ldList = {
-      "@context":"https://schema.org","@type":"ItemList",
-      "itemListElement": BUNDLES.map((b, idx) => ({
-        "@type":"ListItem","position":idx+1,"name":b.name
-      }))
-    };
     document.querySelectorAll("script[data-ld]").forEach(n => n.remove());
     const s1 = document.createElement("script"); s1.type="application/ld+json"; s1.dataset.ld="org"; s1.text = JSON.stringify(ldOrg);
-    const s2 = document.createElement("script"); s2.type="application/ld+json"; s2.dataset.ld="bundles"; s2.text = JSON.stringify(ldList);
-    document.head.appendChild(s1); document.head.appendChild(s2);
+    document.head.appendChild(s1);
   }, [tab]);
 }
 
 /* ------------ hero & shared UI ------------ */
 const SLIDES = [
-  { id: "printers", h1: "Enclosed printers built for families.", p: "Quiet, auto-level, and ready in 10 minutes." },
-  { id: "stls", h1: "Verified kid-friendly STL library.", p: "Curated by humans. Classroom-safe. Free to start." },
+  { id: "printers", h1: "Enclosed printers built for families.", p: "Quiet, auto-level, and ready in 10 minutes.", img: "/img/hero-printer.jpg" },
+  { id: "stls", h1: "Verified kid-friendly STL library.", p: "Curated by humans. Classroom-safe. Free to start.", img: "/img/hero-stls.jpg" },
 ];
+
+function ShareRibbon() {
+  const url = "https://kidprint3d.com/?ref=share";
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(url); alert("Link copied!"); } catch { prompt("Copy this link:", url); }
+  };
+  const twitter = `https://twitter.com/intent/tweet?text=${encodeURIComponent("Kid-safe 3D printing: printers, guides, and verified STL models.")}&url=${encodeURIComponent(url)}`;
+  const email = mailto("","KidPrint — kid-safe 3D printing",`Check this out: ${url}`);
+  return (
+    <div className="mx-auto max-w-7xl px-6 pt-2">
+      <div className="mb-3 flex items-center justify-center gap-2 rounded-xl border border-indigo-400/40 bg-indigo-500/10 px-3 py-2 text-sm text-indigo-200">
+        <Share2 className="h-4 w-4" />
+        <span><strong>Share KidPrint:</strong> help a teacher or parent find safe 3D printing.</span>
+        <button onClick={copy} className="inline-flex items-center gap-1 underline"><LinkIcon className="h-3 w-3" /> Copy link</button>
+        <a href={email} className="underline">Email</a>
+        <a href={twitter} target="_blank" rel="noopener" className="underline">Tweet</a>
+      </div>
+    </div>
+  );
+}
 
 function HeroSlider({ goTab }: { goTab: (t: "shop" | "stls" | "bundles") => void }) {
   const [i, setI] = React.useState(0);
   const [paused, setPaused] = React.useState(false);
   React.useEffect(() => { if (paused) return; const t = setTimeout(() => setI(n => (n+1)%SLIDES.length), 6000); return () => clearTimeout(t); }, [i, paused]);
 
+  const slide = SLIDES[i];
+
   return (
     <section className="relative isolate">
-      <div className="mx-auto max-w-7xl px-6 pt-2">
-        {/* promo ribbon */}
-        <div className="mb-3 flex items-center justify-center gap-2 rounded-xl border border-emerald-400/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">
-          <GraduationCap className="h-4 w-4" />
-          <span><strong>Teachers:</strong> new Classroom bundle is live.</span>
-          <button onClick={() => goTab("bundles")} className="underline underline-offset-2">See bundles</button>
-        </div>
-      </div>
+      <ShareRibbon />
 
       <div className="mx-auto max-w-7xl px-6 pb-12 md:pb-20">
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
-          <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] text-white/90">
-            <ShieldCheck className="h-4 w-4" /> Verified kid-friendly
-          </span>
-
-          <AnimatePresence mode="wait">
-            <motion.div key={SLIDES[i].id} initial={{opacity:0,x:-30}} animate={{opacity:1,x:0}} exit={{opacity:0,x:30}} transition={{duration:0.45,ease:"easeOut"}} className="min-h-[140px]">
-              <h1 className="mb-3 text-4xl font-black leading-tight text-white md:text-5xl">{SLIDES[i].h1}</h1>
-              <p className="mb-6 text-white/80">{SLIDES[i].p}</p>
-              <div className="flex flex-wrap gap-3">
-                <button onClick={() => goTab("shop")} className="rounded-xl bg-emerald-500 px-4 py-2 font-semibold text-black hover:bg-emerald-400">Shop Printers</button>
-                <button onClick={() => goTab("stls")} className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 font-semibold hover:bg-white/10">Explore STLs</button>
-                <button onClick={() => goTab("bundles")} className="rounded-xl border border-emerald-400/40 bg-emerald-500/10 px-4 py-2 font-semibold text-emerald-200 hover:bg-emerald-500/20">School Bundles</button>
-              </div>
-            </motion.div>
-          </AnimatePresence>
-
-          <div className="mt-6 flex items-center justify-between">
-            <div className="flex items-center gap-2">{SLIDES.map((s,k)=>(
-              <button key={s.id} onClick={()=>setI(k)} className={cx("h-1.5 w-8 rounded-full transition-all", k===i?"bg-white":"bg-white/30 hover:bg-white/50")} />
-            ))}</div>
-            <div className="flex items-center gap-2">
-              <button className="rounded-lg border border-white/10 bg-white/5 p-2 text-white/90 hover:bg-white/10" onClick={()=>setI(n=>(n+SLIDES.length-1)%SLIDES.length)} aria-label="Prev"><ChevronLeft className="h-5 w-5"/></button>
-              <button className="rounded-lg border border-white/10 bg-white/5 p-2 text-white/90 hover:bg-white/10" onClick={()=>setI(n=>(n+1)%SLIDES.length)} aria-label="Next"><ChevronRight className="h-5 w-5"/></button>
-              <button className={cx("rounded-lg border border-white/10 p-2", paused?"bg-white/20":"bg-white/5 hover:bg-white/10")} onClick={()=>setPaused(p=>!p)} aria-label={paused?"Play":"Pause"}>{paused ? "▶" : "❚❚"}</button>
-            </div>
+        <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-0 backdrop-blur">
+          {/* background image */}
+          <div className="absolute inset-0 -z-10">
+            <Img src={slide.img} alt="" className="h-full w-full object-cover opacity-35" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0b0b0e] via-[#0b0b0e]/30 to-transparent" />
           </div>
 
-          <div className="mt-4 flex items-center gap-2 text-xs text-white/70">
-            <HelpCircle className="h-4 w-4" />
-            <span>Kid-Safe Promise: we list beginner printers and manually review STL content. Use “Report” on each model.</span>
+          <div className="p-6 md:p-10">
+            <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] text-white/90">
+              <ShieldCheck className="h-4 w-4" /> Verified kid-friendly
+            </span>
+
+            <AnimatePresence mode="wait">
+              <motion.div key={slide.id} initial={{opacity:0,x:-30}} animate={{opacity:1,x:0}} exit={{opacity:0,x:30}} transition={{duration:0.45,ease:"easeOut"}} className="min-h-[140px]">
+                <h1 className="mb-3 text-4xl font-black leading-tight text-white md:text-5xl">{slide.h1}</h1>
+                <p className="mb-6 text-white/85">{slide.p}</p>
+                <div className="flex flex-wrap gap-3">
+                  <button onClick={() => goTab("shop")} className="rounded-xl bg-emerald-500 px-4 py-2 font-semibold text-black hover:bg-emerald-400">Shop Printers</button>
+                  <button onClick={() => goTab("stls")} className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 font-semibold hover:bg-white/10">Explore STLs</button>
+                  <button onClick={() => goTab("bundles")} className="rounded-xl border border-emerald-400/40 bg-emerald-500/10 px-4 py-2 font-semibold text-emerald-200 hover:bg-emerald-500/20">School Bundles</button>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+
+            <div className="mt-6 flex items-center justify-between">
+              <div className="flex items-center gap-2">{SLIDES.map((s,k)=>(
+                <button key={s.id} onClick={()=>setI(k)} className={cx("h-1.5 w-8 rounded-full transition-all", k===i?"bg-white":"bg-white/30 hover:bg-white/50")} />
+              ))}</div>
+              <div className="flex items-center gap-2">
+                <button className="rounded-lg border border-white/10 bg-white/5 p-2 text-white/90 hover:bg-white/10" onClick={()=>setI(n=>(n+SLIDES.length-1)%SLIDES.length)} aria-label="Prev"><ChevronLeft className="h-5 w-5"/></button>
+                <button className="rounded-lg border border-white/10 bg-white/5 p-2 text-white/90 hover:bg-white/10" onClick={()=>setI(n=>(n+1)%SLIDES.length)} aria-label="Next"><ChevronRight className="h-5 w-5"/></button>
+                <button className={cx("rounded-lg border border-white/10 p-2", paused?"bg-white/20":"bg-white/5 hover:bg-white/10")} onClick={()=>setPaused(p=>!p)} aria-label={paused?"Play":"Pause"}>{paused ? "▶" : "❚❚"}</button>
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-center gap-2 text-xs text-white/80">
+              <HelpCircle className="h-4 w-4" />
+              <span>Kid-Safe Promise: we list beginner printers and manually review STL content. Use “Report” on each model.</span>
+            </div>
           </div>
         </div>
       </div>
@@ -264,7 +271,9 @@ function Shop({ onAdd, links }: { onAdd: (id: string) => void; links: Record<str
           const url = buildAffiliateUrl(p.name, direct, amazonTag);
           return (
             <div key={p.id} className="rounded-2xl border border-white/10 bg-white/5 p-5 text-white backdrop-blur-sm">
-              <div className="mb-3"><div className="grid aspect-[4/3] w-full place-items-center rounded-xl border border-white/10 bg-gradient-to-br from-zinc-800 to-zinc-900 text-white/60">{p.art}</div></div>
+              <div className="mb-3">
+                <Img src={p.img} alt={p.name} fallbackLabel={p.name} className="aspect-[4/3] w-full rounded-xl border border-white/10 object-cover" />
+              </div>
               <div className="mb-1 flex items-center justify-between"><h3 className="text-lg font-semibold">{p.name}</h3><Rating value={p.rating}/></div>
               <p className="mb-2 text-xs text-white/60">{p.reviews.toLocaleString()} reviews • {p.stock}</p>
               <p className="mb-3 text-sm text-white/80">{p.desc}</p>
@@ -286,7 +295,7 @@ function Shop({ onAdd, links }: { onAdd: (id: string) => void; links: Record<str
       </div>
 
       <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
-        <strong>Affiliate note:</strong> Add your Amazon tag in <code>public/affiliates.json</code> as <code>"amazon_tag": "kidprint3d-20"</code>. We auto-apply it to Amazon links/searches.
+        <strong>Image note:</strong> Use your own or manufacturer-provided photos. Don’t use Amazon product photos unless fetched via their official API.
       </div>
     </section>
   );
@@ -365,7 +374,7 @@ function Bundles({ links }: { links: Record<string,string> }) {
   );
 }
 
-/* ------------ STL library ------------ */
+/* ------------ STL library (unchanged structure) ------------ */
 function STLPage() {
   type STL = { id: string; name: string; size: string; desc: string; download: string; thumb?: string; tags?: string[]; level?: "Easy" | "Intermediate" | "Advanced" };
   const FALLBACK: STL[] = [
@@ -416,7 +425,7 @@ function STLPage() {
       <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
         {list.map((s) => (
           <div key={s.id} className="rounded-2xl border border-white/10 bg-white/5 p-5 text-white">
-            {s.thumb && <img src={s.thumb} alt={s.name} className="mb-3 aspect-[4/3] w-full rounded-xl border border-white/10 object-cover" />}
+            {s.thumb && <Img src={s.thumb} alt={s.name} className="mb-3 aspect-[4/3] w-full rounded-xl border border-white/10 object-cover" fallbackLabel={s.name} />}
             <div className="mb-1 font-semibold">{s.name}</div>
             <div className="text-xs text-white/70">{s.size} {s.level && <span className="ml-2 rounded border border-white/10 px-1 py-0.5">{s.level}</span>}</div>
             <p className="mt-2 text-sm text-white/80">{s.desc}</p>
@@ -432,7 +441,7 @@ function STLPage() {
   );
 }
 
-/* ------------ FAQ + Safety Cards (printable) ------------ */
+/* ------------ Safety Cards ------------ */
 function printSafetyCards() {
   const html = `<!doctype html>
 <html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -461,34 +470,6 @@ function printSafetyCards() {
   if (w) { w.document.write(html); w.document.close(); }
 }
 
-function FAQ() {
-  const faqs = [
-    { q: "Is 3D printing safe for kids?", a: "With supervision, enclosed printers, and PLA filament, it can be classroom-friendly. We verify models and provide printable Safety Cards." },
-    { q: "What slicer should I use?", a: "We link beginner profiles that work out-of-the-box. Start 0.2 mm layer, 15% infill, supports only when needed." },
-    { q: "Do you provide school pricing?", a: "Yes—use the School Bundles page to request a quote or email hello@kidprint3d.com." },
-    { q: "How do you verify STLs?", a: "We check for content appropriateness, risky mechanisms, and printability. Community can report with one click." },
-  ];
-  const [open, setOpen] = React.useState<string | null>(faqs[0].q);
-  return (
-    <section className="mx-auto max-w-5xl px-6 pb-12">
-      <h3 className="mb-4 text-center text-2xl font-extrabold text-white">FAQ</h3>
-      <div className="mb-4 flex justify-center">
-        <button onClick={printSafetyCards} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-white hover:bg-white/10">
-          <ClipboardCheck className="h-4 w-4"/> Print Safety Cards
-        </button>
-      </div>
-      <div className="divide-y divide-white/10 rounded-2xl border border-white/10 bg-white/5">
-        {faqs.map(f=>(
-          <button key={f.q} onClick={()=>setOpen(open===f.q?null:f.q)} className="w-full p-4 text-left text-white">
-            <div className="flex items-center justify-between"><span className="font-semibold">{f.q}</span><ChevronDown className={cx("h-4 w-4 transition-transform", open===f.q && "rotate-180")} /></div>
-            {open===f.q && <p className="mt-2 text-sm text-white/80">{f.a}</p>}
-          </button>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 /* ------------ APP ------------ */
 export default function App() {
   const [tab, setTab] = React.useState<"home" | "shop" | "bundles" | "stls" | "learn">("home");
@@ -502,13 +483,19 @@ export default function App() {
   const count = cart.reduce((a, i) => a + i.qty, 0);
   const add = (id: string) => { setCart(c => (c.find(x => x.id === id) ? c.map(x => x.id === id ? { ...x, qty: x.qty + 1 } : x) : [...c, { id, qty: 1 }])); setCartOpen(true); };
 
+  const Logo = () => (
+    <div className="flex items-center gap-2">
+      <Img src="/img/logo.svg" alt="KidPrint" className="h-7 w-7 object-contain" />
+      <span className="font-black">KidPrint</span>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-[#0b0b0e] text-white">
       <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0b0b0e]/85 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
-          <button className="flex items-center gap-2 text-left" onClick={() => setTab("home")} aria-label="KidPrint home">
-            <span className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs">K</span>
-            <span className="font-black">KidPrint</span>
+          <button className="text-left" onClick={() => setTab("home")} aria-label="KidPrint home">
+            <Logo />
           </button>
           <nav className="hidden items-center gap-2 md:flex">
             {(["home", "shop", "bundles", "stls", "learn"] as const).map(t => (
