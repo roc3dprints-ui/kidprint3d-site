@@ -1,8 +1,9 @@
+// src/App.tsx
 import React from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ShoppingCart, X, Star, ChevronLeft, ChevronRight, ShieldCheck,
-  ChevronDown, PackageCheck, Truck, Sparkles, Search, Filter, Info, Mail
+  ChevronDown, PackageCheck, Truck, Sparkles, Search, Filter, Info, Mail, HelpCircle
 } from "lucide-react";
 
 /* ------------ helpers ------------ */
@@ -19,6 +20,14 @@ function useAffiliates() {
     fetch("/affiliates.json").then(r => r.ok ? r.json() : {}).then(setLinks).catch(()=>{});
   }, []);
   return links;
+}
+function buildAffiliateUrl(pName: string, direct?: string, amazonTag?: string) {
+  if (direct && direct.trim()) return direct; // exact product link provided
+  // fallback: Amazon search URL (works even without tag)
+  const q = encodeURIComponent(`${pName} 3D Printer`);
+  let url = `https://www.amazon.com/s?k=${q}`;
+  if (amazonTag && amazonTag.trim()) url += `&tag=${encodeURIComponent(amazonTag.trim())}`;
+  return url;
 }
 
 /* ------------ data ------------ */
@@ -39,7 +48,7 @@ const PRODUCTS: Product[] = [
     category: "Kits", rating: 4.6, reviews: 98, stock: "In stock" },
 ];
 
-/* ------------ SEO ------------ */
+/* ------------ SEO (adds JSON-LD automatically) ------------ */
 function useSEO(tab: "home" | "shop" | "stls" | "learn") {
   React.useEffect(() => {
     const title = {
@@ -49,10 +58,52 @@ function useSEO(tab: "home" | "shop" | "stls" | "learn") {
       learn: "Parents & Teachers guide — KidPrint",
     }[tab];
     document.title = title;
-    const descText = "Enclosed, quiet 3D printers plus a curated, kid-safe STL library and free guides for parents and teachers.";
+
+    const descText =
+      "Enclosed, quiet 3D printers plus a curated, kid-safe STL library and free guides for parents and teachers.";
     let desc = document.querySelector('meta[name="description"]');
-    if (!desc) { desc = document.createElement("meta"); desc.setAttribute("name", "description"); document.head.appendChild(desc); }
+    if (!desc) {
+      desc = document.createElement("meta");
+      desc.setAttribute("name", "description");
+      document.head.appendChild(desc);
+    }
     desc.setAttribute("content", descText);
+
+    // JSON-LD: Organization + one featured Product
+    const ldOrg = {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      name: "KidPrint",
+      url: "https://kidprint3d.com",
+      logo: "https://kidprint3d.com/favicon.svg"
+    };
+    const featured = PRODUCTS[0];
+    const ldProduct = {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      name: featured.name,
+      brand: featured.name.split(" ")[0],
+      category: "3D Printer",
+      offers: {
+        "@type": "Offer",
+        priceCurrency: "USD",
+        price: featured.price.toFixed(2),
+        availability: "https://schema.org/InStock",
+        url: "https://kidprint3d.com/"
+      },
+      aggregateRating: {
+        "@type": "AggregateRating",
+        ratingValue: featured.rating.toFixed(1),
+        reviewCount: String(featured.reviews)
+      }
+    };
+    // remove previous
+    document.querySelectorAll("script[data-ld]").forEach(n => n.remove());
+    const s1 = document.createElement("script");
+    s1.type = "application/ld+json"; s1.dataset.ld = "org"; s1.text = JSON.stringify(ldOrg);
+    const s2 = document.createElement("script");
+    s2.type = "application/ld+json"; s2.dataset.ld = "product"; s2.text = JSON.stringify(ldProduct);
+    document.head.appendChild(s1); document.head.appendChild(s2);
   }, [tab]);
 }
 
@@ -109,6 +160,11 @@ function HeroSlider({ goTab }: { goTab: (t: "shop" | "stls") => void }) {
               <button className={cx("rounded-lg border border-white/10 p-2", paused ? "bg-white/20" : "bg-white/5 hover:bg-white/10")} onClick={() => setPaused((p) => !p)} aria-label={paused ? "Play" : "Pause"}>{paused ? "▶" : "❚❚"}</button>
             </div>
           </div>
+
+          <div className="mt-4 flex items-center gap-2 text-xs text-white/70">
+            <HelpCircle className="h-4 w-4" />
+            <span>Kid-Safe Promise: We list enclosed/beginner printers and manually review STL content. See “Report” on each model.</span>
+          </div>
         </div>
       </div>
     </section>
@@ -154,6 +210,7 @@ function Shop({ onAdd, links }: { onAdd: (id: string) => void; links: Record<str
   const [cat, setCat] = React.useState<"All" | Product["category"]>("All");
   const [sort, setSort] = React.useState<"popular" | "price-asc" | "price-desc">("popular");
 
+  const amazonTag = (links["amazon_tag"] || "").trim();
   let items = PRODUCTS.filter((p) => (cat === "All" || p.category === cat) && p.name.toLowerCase().includes(q.toLowerCase()));
   if (sort === "price-asc") items = items.sort((a, b) => a.price - b.price);
   if (sort === "price-desc") items = items.sort((a, b) => b.price - a.price);
@@ -183,7 +240,8 @@ function Shop({ onAdd, links }: { onAdd: (id: string) => void; links: Record<str
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
         {items.map((p) => {
           const save = p.compareAt ? p.compareAt - p.price : 0;
-          const url = links[p.id];
+          const direct = links[p.id];
+          const url = buildAffiliateUrl(p.name, direct, amazonTag);
           return (
             <div key={p.id} className="rounded-2xl border border-white/10 bg-white/5 p-5 text-white backdrop-blur-sm">
               <div className="mb-3">
@@ -202,12 +260,8 @@ function Shop({ onAdd, links }: { onAdd: (id: string) => void; links: Record<str
                   {save > 0 && <div className="text-xs text-emerald-400">Save {currency(save)}</div>}
                 </div>
                 <div className="flex gap-2">
-                  {url ? (
-                    <a href={url} target="_blank" rel="nofollow sponsored noopener"
-                       className="rounded-xl bg-emerald-500 px-3 py-2 font-semibold text-black hover:bg-emerald-400">Buy now</a>
-                  ) : (
-                    <button disabled className="cursor-not-allowed rounded-xl bg-zinc-700/60 px-3 py-2 font-semibold text-white/70">Buy (soon)</button>
-                  )}
+                  <a href={url} target="_blank" rel="nofollow sponsored noopener"
+                     className="rounded-xl bg-emerald-500 px-3 py-2 font-semibold text-black hover:bg-emerald-400">Buy now</a>
                   <button className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm hover:bg-white/10" onClick={() => onAdd(p.id)}>
                     Add to cart
                   </button>
@@ -219,6 +273,10 @@ function Shop({ onAdd, links }: { onAdd: (id: string) => void; links: Record<str
             </div>
           );
         })}
+      </div>
+
+      <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
+        <strong>Affiliate note:</strong> If you have an Amazon Associates tag, add it to <code>public/affiliates.json</code> as <code>"amazon_tag": "YOURTAG-20"</code>. We’ll add it to all Amazon links automatically.
       </div>
     </section>
   );
@@ -247,7 +305,7 @@ function STLPage() {
   const reportLink = (s: STL) => mailto(
     "hello@kidprint3d.com",
     `Report STL: ${s.name} (${s.id})`,
-    `Model: ${s.name}\nID: ${s.id}\nReason: `
+    `Model: ${s.name}\nID: ${s.id}\nReason: (e.g., inappropriate content, unsafe design)\nDetails: `
   );
 
   return (
@@ -295,6 +353,7 @@ function FAQ() {
     { q: "Is 3D printing safe for kids?", a: "With supervision, enclosed printers, and PLA filament, it can be classroom-friendly. We verify models for content and share safety cards." },
     { q: "What slicer should I use?", a: "We link beginner profiles that work out-of-the-box. You can still tweak layer height, infill, and supports as you learn." },
     { q: "Do you provide school pricing?", a: "Yes—email hello@kidprint3d.com for quotes, purchase orders, and bundles." },
+    { q: "How do you verify STLs?", a: "We check for inappropriate themes, risky mechanisms, and printability. Community can report via the Report button on each model." },
   ];
   const [open, setOpen] = React.useState<string | null>(faqs[0].q);
   return (
@@ -312,13 +371,16 @@ function FAQ() {
   );
 }
 
-/* ------------ main app ------------ */
+/* ------------ main app + inline Privacy/Terms ------------ */
 export default function App() {
   const [tab, setTab] = React.useState<"home" | "shop" | "stls" | "learn">("home");
   const [cartOpen, setCartOpen] = React.useState(false);
   const [cart, setCart] = React.useState<{ id: string; qty: number }[]>([]);
+  const [showPrivacy, setShowPrivacy] = React.useState(false);
+  const [showTerms, setShowTerms] = React.useState(false);
   const affiliates = useAffiliates();
   useSEO(tab);
+
   const count = cart.reduce((a, i) => a + i.qty, 0);
   const add = (id: string) => { setCart(c => (c.find(x => x.id === id) ? c.map(x => x.id === id ? { ...x, qty: x.qty + 1 } : x) : [...c, { id, qty: 1 }])); setCartOpen(true); };
 
@@ -382,6 +444,10 @@ export default function App() {
           © {new Date().getFullYear()} KidPrint • hello@kidprint3d.com
           <div className="mt-2 text-xs text-white/60">
             Disclosure: As an Amazon Associate we earn from qualifying purchases. Some “Buy” links are affiliate links.
+            <span className="mx-2">•</span>
+            <button className="underline" onClick={() => setShowPrivacy(true)}>Privacy</button>
+            <span className="mx-2">•</span>
+            <button className="underline" onClick={() => setShowTerms(true)}>Terms</button>
           </div>
         </div>
       </footer>
@@ -416,6 +482,40 @@ export default function App() {
                 <button className="w-full rounded-xl bg-emerald-500 px-4 py-2 font-semibold text-black hover:bg-emerald-400">Checkout (demo)</button>
               </div>
             </motion.aside>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Privacy modal */}
+      <AnimatePresence>
+        {showPrivacy && (
+          <motion.div className="fixed inset-0 z-50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <div className="absolute inset-0 bg-black/50" onClick={() => setShowPrivacy(false)} />
+            <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}
+              className="absolute left-1/2 top-20 w-[92vw] max-w-xl -translate-x-1/2 rounded-2xl border border-white/10 bg-zinc-900 p-5 text-sm">
+              <div className="mb-2 flex items-center justify-between">
+                <div className="text-lg font-semibold">Privacy</div>
+                <button onClick={() => setShowPrivacy(false)} className="rounded-md border border-white/10 px-2 py-1">Close</button>
+              </div>
+              <p className="text-white/80">We don’t sell personal data. If you email us, we use your email only to reply. We don’t track you across sites. For analytics, we recommend privacy-friendly Cloudflare Web Analytics. You can request deletion anytime: hello@kidprint3d.com.</p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Terms modal */}
+      <AnimatePresence>
+        {showTerms && (
+          <motion.div className="fixed inset-0 z-50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <div className="absolute inset-0 bg-black/50" onClick={() => setShowTerms(false)} />
+            <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}
+              className="absolute left-1/2 top-20 w-[92vw] max-w-xl -translate-x-1/2 rounded-2xl border border-white/10 bg-zinc-900 p-5 text-sm">
+              <div className="mb-2 flex items-center justify-between">
+                <div className="text-lg font-semibold">Terms</div>
+                <button onClick={() => setShowTerms(false)} className="rounded-md border border-white/10 px-2 py-1">Close</button>
+              </div>
+              <p className="text-white/80">All content is provided “as-is.” Always supervise kids around printers. Use PLA for school/home. By using this site you agree to our safety guidelines and disclosures. Some links are affiliate links; they don’t change our recommendations.</p>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
