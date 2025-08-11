@@ -94,7 +94,7 @@ const PRODUCTS: Product[] = [
     desc: "Compact enclosed printer; quiet and beginner-friendly.",
     badges: ["Kid-Friendly", "Auto-Level", "Wi-Fi"],
     specs: ["100×120×100 mm", "0.4 mm nozzle", "PLA"],
-    img: "/img/printer-tina2s.jpg",
+    img: "/img/tina2s.png",
     category: "Printers",
     rating: 4.8,
     reviews: 312,
