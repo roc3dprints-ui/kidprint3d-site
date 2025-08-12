@@ -14,8 +14,7 @@
     "stock": "In stock"
   },
 
-  /* ---- Top 5 enclosed picks (edit names/links later) ---- */
-  {
+  { 
     "id": "enclosed-1",
     "name": "Compact Enclosed A",
     "price": 399,
@@ -27,10 +26,9 @@
     "category": "Printers",
     "rating": 4.7,
     "reviews": 210,
-    "stock": "In stock",
-    "direct": ""
+    "stock": "In stock"
   },
-  {
+  { 
     "id": "enclosed-2",
     "name": "Classroom Enclosed B",
     "price": 429,
@@ -42,10 +40,9 @@
     "category": "Printers",
     "rating": 4.6,
     "reviews": 168,
-    "stock": "In stock",
-    "direct": ""
+    "stock": "In stock"
   },
-  {
+  { 
     "id": "enclosed-3",
     "name": "Quiet Enclosed C",
     "price": 499,
@@ -57,10 +54,9 @@
     "category": "Printers",
     "rating": 4.6,
     "reviews": 132,
-    "stock": "In stock",
-    "direct": ""
+    "stock": "In stock"
   },
-  {
+  { 
     "id": "enclosed-4",
     "name": "Family Enclosed D",
     "price": 449,
@@ -72,10 +68,9 @@
     "category": "Printers",
     "rating": 4.5,
     "reviews": 99,
-    "stock": "In stock",
-    "direct": ""
+    "stock": "In stock"
   },
-  {
+  { 
     "id": "enclosed-5",
     "name": "Edu Enclosed E",
     "price": 469,
@@ -87,8 +82,22 @@
     "category": "Printers",
     "rating": 4.6,
     "reviews": 121,
-    "stock": "In stock",
-    "direct": ""
+    "stock": "In stock"
+  },
+
+  { 
+    "id": "enclosed-kid-printer",
+    "name": "Enclosed Kid Printer",
+    "price": 399,
+    "compareAt": 449,
+    "desc": "Fully enclosed, safer around curious hands.",
+    "badges": ["Quiet", "Auto-Level", "Touchscreen"],
+    "specs": ["120×120×120 mm", "0.4 mm nozzle", "PLA/TPU"],
+    "img": "/img/enclosed-kid-printer.jpg",
+    "category": "Printers",
+    "rating": 4.7,
+    "reviews": 201,
+    "stock": "In stock"
   },
 
   {
